@@ -110,7 +110,7 @@ const ShapeRenderer: React.FC<ShapeRendererProps> = ({ shape, onClick, highContr
   const ariaAttributes = {
     role: "button",
     "aria-label": `${type} shape, color ${color.replace('#', '')}`,
-    "aria-pressed": isSelected ? "true" : "false",
+    "aria-pressed": isSelected, // Changed from string to boolean
     tabIndex: 0,
   };
 

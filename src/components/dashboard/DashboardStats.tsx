@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar } from 'recharts';
-import { Chart } from '@/components/ui/chart';
+import { ChartContainer as Chart } from '@/components/ui/chart';
 
 interface StatsCardProps {
   title: string;

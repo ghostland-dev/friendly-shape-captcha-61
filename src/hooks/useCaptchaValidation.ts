@@ -52,7 +52,7 @@ export const useCaptchaValidation = ({
   }, []);
 
   // Remote verification via API if configured
-  const verifyRemotely = useCallback(async (shapes: Shape[]): Promise<boolean> => {
+  const performRemoteVerification = useCallback(async (shapes: Shape[]): Promise<boolean> => {
     try {
       // Create verification payload
       const payload = {
@@ -101,7 +101,7 @@ export const useCaptchaValidation = ({
     
     // Remote validation if configured
     if (isValid && verifyRemotely) {
-      isValid = await verifyRemotely(shapes);
+      isValid = await performRemoteVerification(shapes);
     }
     
     const verificationTime = startTimeRef.current ? Date.now() - startTimeRef.current : 0;
@@ -139,7 +139,7 @@ export const useCaptchaValidation = ({
     setIsLoading(false);
     startTimeRef.current = null;
     return isValid;
-  }, [attempts, isVerified, maxAttempts, onFailure, onSuccess, siteKey, validateSelection, verifyRemotely]);
+  }, [attempts, isVerified, maxAttempts, onFailure, onSuccess, siteKey, validateSelection, verifyRemotely, performRemoteVerification]);
 
   const reset = useCallback(() => {
     setAttempts(0);
