@@ -4,13 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import IntegrationCode from '@/components/captcha/IntegrationCode';
+import ApiCurlExample from '@/components/dashboard/ApiCurlExample';
 import { toast } from '@/components/ui/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { CopyIcon, CheckIcon } from 'lucide-react';
 
-type DashboardPage = 'overview' | 'integrations' | 'stats' | 'settings' | 'billing' | 'profile';
+type DashboardPage = 'overview' | 'integrations' | 'stats' | 'settings' | 'api' | 'billing' | 'profile';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -114,6 +115,18 @@ const Dashboard: React.FC = () => {
               </p>
             </div>
             <DashboardStats />
+          </div>
+        );
+      case 'api':
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">API et intégration cURL</h2>
+              <p className="text-muted-foreground">
+                Explorez notre API RESTful et utilisez ces commandes curl pour l'intégrer à vos applications.
+              </p>
+            </div>
+            <ApiCurlExample />
           </div>
         );
       case 'settings':
