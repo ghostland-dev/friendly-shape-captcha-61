@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bar } from 'recharts';
-import { ChartContainer as Chart } from '@/components/ui/chart';
+import { Bar, ResponsiveContainer, BarChart, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { ChartContainer } from '@/components/ui/chart';
 
 interface StatsCardProps {
   title: string;
@@ -71,13 +71,21 @@ const DashboardStats: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="h-80">
-            <Chart data={data}>
-              <Bar 
-                dataKey="value" 
-                fill="#3b82f6" 
-                radius={[4, 4, 0, 0]}
-              />
-            </Chart>
+            <ChartContainer config={{}}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar 
+                    dataKey="value" 
+                    fill="#3b82f6" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           </div>
         </CardContent>
       </Card>
