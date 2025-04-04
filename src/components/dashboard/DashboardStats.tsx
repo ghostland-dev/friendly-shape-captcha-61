@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, ResponsiveContainer, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line } from 'recharts';
@@ -34,7 +33,6 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, description, icon, 
 );
 
 const DashboardStats: React.FC = () => {
-  // Sample data for the bar chart
   const weeklyData = [
     { name: 'Lun', value: 432 },
     { name: 'Mar', value: 362 },
@@ -44,8 +42,7 @@ const DashboardStats: React.FC = () => {
     { name: 'Sam', value: 321 },
     { name: 'Dim', value: 289 },
   ];
-  
-  // Sample data for the line chart (monthly trend)
+
   const monthlyData = [
     { month: 'Jan', verifications: 4500 },
     { month: 'Fév', verifications: 5200 },
@@ -95,10 +92,12 @@ const DashboardStats: React.FC = () => {
       </div>
       
       <Tabs defaultValue="daily" className="w-full">
-        <TabsList>
-          <TabsTrigger value="daily">Données journalières</TabsTrigger>
-          <TabsTrigger value="monthly">Tendance mensuelle</TabsTrigger>
-        </TabsList>
+        <div className="w-full">
+          <TabsList className="w-full">
+            <TabsTrigger value="daily" className="flex-1">Données journalières</TabsTrigger>
+            <TabsTrigger value="monthly" className="flex-1">Tendance mensuelle</TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="daily">
           <Card>
             <CardHeader>
