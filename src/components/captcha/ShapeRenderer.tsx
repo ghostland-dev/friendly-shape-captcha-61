@@ -6,9 +6,10 @@ import { cn } from '@/lib/utils';
 interface ShapeRendererProps {
   shape: Shape;
   onClick: (id: string) => void;
+  highContrast?: boolean;
 }
 
-const ShapeRenderer: React.FC<ShapeRendererProps> = ({ shape, onClick }) => {
+const ShapeRenderer: React.FC<ShapeRendererProps> = ({ shape, onClick, highContrast = false }) => {
   const { id, type, x, y, size, color, rotation, isSelected } = shape;
   
   // Common classes for all shapes
@@ -19,8 +20,22 @@ const ShapeRenderer: React.FC<ShapeRendererProps> = ({ shape, onClick }) => {
     isSelected ? 'stroke-2 stroke-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]' : 'stroke-none',
   );
 
+  // Styles for high contrast mode
+  const getHighContrastStyles = () => {
+    if (!highContrast) return {};
+
+    return {
+      strokeWidth: 3,
+      stroke: '#000000',
+      strokeOpacity: 0.8,
+      filter: isSelected ? 'drop-shadow(0 0 4px white)' : 'none',
+    };
+  };
+
   // Create SVG paths for different shapes
   const renderShape = () => {
+    const highContrastStyles = getHighContrastStyles();
+
     switch (type) {
       case 'circle':
         return (
@@ -31,6 +46,7 @@ const ShapeRenderer: React.FC<ShapeRendererProps> = ({ shape, onClick }) => {
             fill={color}
             className={commonClasses}
             onClick={() => onClick(id)}
+            style={highContrastStyles}
           />
         );
         
@@ -44,6 +60,7 @@ const ShapeRenderer: React.FC<ShapeRendererProps> = ({ shape, onClick }) => {
             fill={color}
             className={commonClasses}
             onClick={() => onClick(id)}
+            style={highContrastStyles}
           />
         );
         
@@ -55,6 +72,7 @@ const ShapeRenderer: React.FC<ShapeRendererProps> = ({ shape, onClick }) => {
             fill={color}
             className={commonClasses}
             onClick={() => onClick(id)}
+            style={highContrastStyles}
           />
         );
         
@@ -79,12 +97,21 @@ const ShapeRenderer: React.FC<ShapeRendererProps> = ({ shape, onClick }) => {
             fill={color}
             className={commonClasses}
             onClick={() => onClick(id)}
+            style={highContrastStyles}
           />
         );
         
       default:
         return null;
     }
+  };
+
+  // Enhanced ARIA attributes for accessibility
+  const ariaAttributes = {
+    role: "button",
+    "aria-label": `${type} shape, color ${color.replace('#', '')}`,
+    "aria-pressed": isSelected ? "true" : "false",
+    tabIndex: 0,
   };
 
   // Create SVG container with appropriate positioning
@@ -103,6 +130,13 @@ const ShapeRenderer: React.FC<ShapeRendererProps> = ({ shape, onClick }) => {
       }}
       viewBox={`0 0 ${size} ${size}`}
       className={isSelected ? 'animate-pulse-subtle' : ''}
+      {...ariaAttributes}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onClick(id);
+          e.preventDefault();
+        }
+      }}
     >
       {renderShape()}
     </svg>

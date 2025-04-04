@@ -26,10 +26,12 @@ interface UseShapeGeneratorProps {
   canvasHeight: number;
   shapeCount?: number;
   targetShape?: TargetShape;
+  highContrast?: boolean;
 }
 
 // Constants
-const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+const STANDARD_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+const HIGH_CONTRAST_COLORS = ['#0000FF', '#00AA00', '#FFCC00', '#FF0000', '#9900FF', '#FF00FF'];
 const MIN_SIZE = 30;
 const MAX_SIZE = 60;
 const MIN_DISTANCE = 40; // Minimum distance between shapes
@@ -43,8 +45,14 @@ export const useShapeGenerator = ({
   canvasHeight,
   shapeCount = 10,
   targetShape,
+  highContrast = false,
 }: UseShapeGeneratorProps) => {
   const [shapes, setShapes] = useState<Shape[]>([]);
+
+  // Select the appropriate color palette
+  const COLORS = useMemo(() => 
+    highContrast ? HIGH_CONTRAST_COLORS : STANDARD_COLORS
+  , [highContrast]);
 
   // Check if a position is valid (not too close to existing shapes)
   const isValidPosition = (x: number, y: number, size: number, shapes: Shape[]): boolean => {
@@ -141,7 +149,7 @@ export const useShapeGenerator = ({
     
     setShapes(newShapes);
     return newShapes;
-  }, [canvasWidth, canvasHeight, shapeCount, targetShape]);
+  }, [canvasWidth, canvasHeight, shapeCount, targetShape, COLORS]);
 
   // Toggle selection state of a shape
   const toggleSelectShape = useCallback((id: string) => {

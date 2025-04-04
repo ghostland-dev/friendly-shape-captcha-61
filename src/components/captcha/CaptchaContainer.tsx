@@ -1,18 +1,39 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import CaptchaCanvas from './CaptchaCanvas';
 import CaptchaInstructions from './CaptchaInstructions';
+import AccessibilityControl from './AccessibilityControl';
 import { useShapeGenerator } from '@/hooks/useShapeGenerator';
 import { useCaptchaValidation } from '@/hooks/useCaptchaValidation';
 import { cn } from '@/lib/utils';
+import { analyticsService } from '@/services/analyticsService';
+import { CaptchaTheme } from '@/config/captchaConfig';
+import { RefreshCcw, ShieldCheck } from 'lucide-react';
 
 interface CaptchaContainerProps {
-  onVerified?: () => void;
+  onVerified?: (token?: string) => void;
   onFailure?: () => void;
   width?: number;
   height?: number;
   className?: string;
+  siteKey?: string;
+  theme?: CaptchaTheme;
+  customColors?: {
+    primary?: string;
+    background?: string;
+    text?: string;
+    accent?: string;
+  };
+  accessibility?: {
+    enableAudioFallback?: boolean;
+    highContrast?: boolean;
+  };
+  verifyRemotely?: boolean;
+  webhooks?: {
+    onVerified?: string;
+    onFailed?: string;
+  };
 }
 
 const CaptchaContainer: React.FC<CaptchaContainerProps> = ({
@@ -20,9 +41,21 @@ const CaptchaContainer: React.FC<CaptchaContainerProps> = ({
   onFailure,
   width = 320,
   height = 220,
-  className
+  className,
+  siteKey = 'demo-site-key',
+  theme = 'auto',
+  customColors = {},
+  accessibility = {
+    enableAudioFallback: false,
+    highContrast: false
+  },
+  verifyRemotely = false,
+  webhooks
 }) => {
   const [canvasSize, setCanvasSize] = useState({ width, height });
+  const [highContrast, setHighContrast] = useState(accessibility.highContrast);
+  const [audioMode, setAudioMode] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // Initialize shape generator
   const {
@@ -34,7 +67,8 @@ const CaptchaContainer: React.FC<CaptchaContainerProps> = ({
   } = useShapeGenerator({
     canvasWidth: canvasSize.width,
     canvasHeight: canvasSize.height,
-    shapeCount: 8
+    shapeCount: 8,
+    highContrast
   });
   
   // Initialize validation logic
@@ -42,17 +76,24 @@ const CaptchaContainer: React.FC<CaptchaContainerProps> = ({
     isVerified,
     isLoading,
     errorMessage,
+    token,
     handleValidation,
     reset: resetValidation
   } = useCaptchaValidation({
-    onSuccess: onVerified,
+    onSuccess: (token) => {
+      onVerified?.(token);
+    },
     maxAttempts: 3,
-    onFailure: onFailure
+    onFailure,
+    siteKey,
+    verifyRemotely,
+    webhooks
   });
   
   // Generate shapes on initial load
   useEffect(() => {
     generateShapes();
+    analyticsService.trackEvent('generated');
   }, [generateShapes]);
   
   // Handle shape click
@@ -62,6 +103,7 @@ const CaptchaContainer: React.FC<CaptchaContainerProps> = ({
   
   // Handle verify button click
   const handleVerify = useCallback(async () => {
+    analyticsService.trackEvent('attempted');
     const result = await handleValidation(shapes);
     if (!result) {
       // If validation failed, wait a moment before resetting
@@ -76,14 +118,25 @@ const CaptchaContainer: React.FC<CaptchaContainerProps> = ({
     resetSelections();
     resetValidation();
     generateShapes();
+    analyticsService.trackEvent('generated');
   }, [generateShapes, resetSelections, resetValidation]);
+  
+  // Toggle high contrast mode
+  const toggleHighContrast = useCallback(() => {
+    setHighContrast(prev => !prev);
+  }, []);
+  
+  // Handle audio challenge completion
+  const handleAudioChallengeCompleted = useCallback(() => {
+    onVerified?.(token || `${siteKey}_${Date.now()}_audio`);
+    setAudioMode(false);
+  }, [onVerified, siteKey, token]);
   
   // Adjust canvas size based on container width
   useEffect(() => {
     const handleResize = () => {
-      const container = document.getElementById('captcha-container');
-      if (container) {
-        const containerWidth = container.clientWidth;
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
         if (containerWidth < width) {
           setCanvasSize({
             width: containerWidth - 40, // Adjust for padding
@@ -100,17 +153,52 @@ const CaptchaContainer: React.FC<CaptchaContainerProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [width, height]);
   
+  // Apply theme
+  const getThemeClasses = () => {
+    switch (theme) {
+      case 'dark':
+        return 'bg-gray-800/80 backdrop-blur-md border-gray-700/50 text-white';
+      case 'light': 
+        return 'bg-white/80 backdrop-blur-md border-white/50 text-gray-900';
+      case 'custom':
+        // Pour les couleurs personnalisées, on laisse le style par défaut et on applique des styles inline
+        return '';
+      default: // 'auto'
+        return 'glass';
+    }
+  };
+  
+  // Get custom style based on customColors prop
+  const getCustomStyle = () => {
+    if (theme !== 'custom') return {};
+    
+    return {
+      backgroundColor: customColors.background || 'rgba(255, 255, 255, 0.8)',
+      color: customColors.text || 'inherit',
+      borderColor: customColors.accent || 'rgba(255, 255, 255, 0.2)',
+      '--primary-color': customColors.primary || '#3B82F6' // Pour être utilisé dans les composants enfants
+    } as React.CSSProperties;
+  };
+
   return (
     <div 
+      ref={containerRef}
       id="captcha-container"
       className={cn(
-        'flex flex-col space-y-4 p-5 rounded-xl glass bg-white/30 backdrop-blur-md',
-        'border border-white/20 shadow-lg transition-all duration-300',
+        'flex flex-col space-y-4 p-5 rounded-xl border shadow-lg transition-all duration-300',
+        getThemeClasses(),
         className
       )}
+      style={getCustomStyle()}
+      data-site-key={siteKey}
+      data-theme={theme}
     >
-      <div className="text-center mb-1">
-        <h3 className="text-lg font-semibold text-foreground">Human Verification</h3>
+      <div className="text-center mb-1 flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Vérification</h3>
+        <div className="text-xs opacity-60 flex items-center">
+          <ShieldCheck className="h-3 w-3 mr-1" />
+          CaptchaPro
+        </div>
       </div>
       
       <CaptchaInstructions 
@@ -119,6 +207,7 @@ const CaptchaContainer: React.FC<CaptchaContainerProps> = ({
         targetCount={targetInfo?.count}
         errorMessage={errorMessage}
         className="animate-fade-in"
+        highContrast={highContrast}
       />
       
       <CaptchaCanvas 
@@ -129,43 +218,46 @@ const CaptchaContainer: React.FC<CaptchaContainerProps> = ({
         isVerified={isVerified}
         isLoading={isLoading}
         className="mx-auto animate-fade-in"
+        highContrast={highContrast}
       />
+      
+      {accessibility.enableAudioFallback && (
+        <AccessibilityControl 
+          targetType={targetInfo?.type}
+          targetColor={targetInfo?.color}
+          targetCount={targetInfo?.count}
+          onAudioChallengeCompleted={handleAudioChallengeCompleted}
+          highContrast={highContrast}
+          onToggleHighContrast={toggleHighContrast}
+        />
+      )}
       
       <div className="flex space-x-3 pt-2">
         <Button
           variant="outline"
           size="sm"
-          className="flex-1 bg-white/50 hover:bg-white/70"
+          className="flex-1"
           onClick={handleRegenerateCaptcha}
           disabled={isLoading}
         >
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            width="16" 
-            height="16" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            className="mr-2"
-          >
-            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-            <path d="M21 3v5h-5" />
-            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-            <path d="M8 16H3v5" />
-          </svg>
-          New CAPTCHA
+          <RefreshCcw className="mr-2 h-4 w-4" />
+          Nouveau
         </Button>
         <Button
           className="flex-1"
           onClick={handleVerify}
           disabled={isVerified || isLoading}
+          style={{
+            backgroundColor: theme === 'custom' ? (customColors.primary || '') : ''
+          }}
         >
-          {isLoading ? 'Verifying...' : isVerified ? 'Verified' : 'Verify'}
+          {isLoading ? 'Vérification...' : isVerified ? 'Vérifié' : 'Vérifier'}
         </Button>
       </div>
+      
+      {isVerified && token && (
+        <input type="hidden" name="captcha-token" value={token} />
+      )}
     </div>
   );
 };

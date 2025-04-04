@@ -1,7 +1,9 @@
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import CaptchaContainer from './CaptchaContainer';
 import { toast } from '@/components/ui/use-toast';
+import { CaptchaTheme } from '@/config/captchaConfig';
+import { captchaService } from '@/services/captchaService';
 
 interface CaptchaAPIProps {
   onVerified?: (token: string) => void;
@@ -10,6 +12,22 @@ interface CaptchaAPIProps {
   width?: number;
   height?: number;
   className?: string;
+  theme?: CaptchaTheme;
+  customColors?: {
+    primary?: string;
+    background?: string;
+    text?: string;
+    accent?: string;
+  };
+  accessibility?: {
+    enableAudioFallback?: boolean;
+    highContrast?: boolean;
+  };
+  verifyRemotely?: boolean;
+  webhooks?: {
+    onVerified?: string;
+    onFailed?: string;
+  };
 }
 
 /**
@@ -21,22 +39,67 @@ const CaptchaAPI: React.FC<CaptchaAPIProps> = ({
   siteKey = 'demo-site-key',
   width = 320,
   height = 220,
-  className
+  className,
+  theme = 'auto',
+  customColors = {},
+  accessibility = {
+    enableAudioFallback: false,
+    highContrast: false
+  },
+  verifyRemotely = false,
+  webhooks
 }) => {
   const [token, setToken] = useState<string | null>(null);
 
+  // Initialize captcha service
+  useEffect(() => {
+    if (!captchaService) return;
+    
+    captchaService.init({
+      siteKey,
+      theme: theme as CaptchaTheme,
+      customColors,
+      accessibility: {
+        enableAudioFallback: accessibility.enableAudioFallback || false,
+        highContrast: accessibility.highContrast || false
+      },
+      analytics: {
+        enabled: true,
+        sendEvents: false
+      },
+      webhooks
+    });
+  }, [siteKey, theme, customColors, accessibility, webhooks]);
+
   // Generate a verification token when CAPTCHA is verified
-  const handleVerified = useCallback(() => {
-    // Create a verification token (in a real implementation, this would be signed on the server)
-    const newToken = generateVerificationToken(siteKey);
+  const handleVerified = useCallback((newToken?: string) => {
+    if (!newToken) {
+      console.error('No verification token received');
+      return;
+    }
+    
     setToken(newToken);
     onVerified?.(newToken);
-  }, [onVerified, siteKey]);
+    
+    // Success toast
+    toast({
+      title: "Vérification réussie",
+      description: "Vous avez prouvé que vous êtes humain.",
+      variant: "default",
+    });
+  }, [onVerified]);
 
   // Handle verification failure
   const handleFailure = useCallback(() => {
     setToken(null);
     onFailure?.();
+    
+    // Error toast
+    toast({
+      title: "Échec de vérification",
+      description: "Veuillez réessayer ou générer un nouveau CAPTCHA.",
+      variant: "destructive",
+    });
   }, [onFailure]);
 
   return (
@@ -47,6 +110,12 @@ const CaptchaAPI: React.FC<CaptchaAPIProps> = ({
         width={width}
         height={height}
         className={className}
+        siteKey={siteKey}
+        theme={theme}
+        customColors={customColors}
+        accessibility={accessibility}
+        verifyRemotely={verifyRemotely}
+        webhooks={webhooks}
       />
       
       {token && (
@@ -54,15 +123,6 @@ const CaptchaAPI: React.FC<CaptchaAPIProps> = ({
       )}
     </div>
   );
-};
-
-// Helper function to generate a verification token
-// In a real implementation, this would be validated on the server
-const generateVerificationToken = (siteKey: string): string => {
-  const timestamp = Date.now();
-  const randomPart = Math.random().toString(36).substring(2, 10);
-  // This is a simple demo token. In production, you would use a proper JWT or other secure token
-  return `${siteKey}_${timestamp}_${randomPart}`;
 };
 
 export default CaptchaAPI;
